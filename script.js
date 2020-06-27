@@ -37,8 +37,6 @@ app.get('/',(req,res)=>{
 
 
 app.post('/signin',(req,res)=>{
-	console.log(req.body.email===Database.user[0].email,
-		req.body.password===Database.user[0].password)
 	if(req.body.email===Database.user[0].email&&
 		req.body.password===Database.user[0].password){
 		res.json(Database.user[0]);
@@ -97,4 +95,3 @@ app.listen(3030,()=>{
 })
 
 
-//

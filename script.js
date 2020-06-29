@@ -22,7 +22,7 @@ app.use(cors());
 
 
 app.get('/',(req,res)=>{
-	res.send(Database.user);
+	res.send('it is working');
 })
 
 

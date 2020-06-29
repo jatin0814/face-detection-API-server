@@ -98,7 +98,7 @@ app.put('/image',(req,res)=>{
 })
 
 
-app.listen(3030,()=>{
+app.listen(process.env.PORT || 3030, ()=>{
 	console.log('working!!');
 })
 

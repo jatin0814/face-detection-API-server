@@ -1,7 +1,19 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const knex = require('knex');
 
+const postgres = knex({
+	client:'pg',
+	connection:{
+		host:'127.0.0.1',
+		user:'postgres',
+		password:'6225',
+		database:'smart-brain'
+	}
+})
+
+console.log(postgres.select('*').from('users'));
 
 const app = express();
 
@@ -37,6 +49,8 @@ app.get('/',(req,res)=>{
 
 
 app.post('/signin',(req,res)=>{
+	console.log(req.body.email===Database.user[0].email,
+		req.body.password===Database.user[0].password)
 	if(req.body.email===Database.user[0].email&&
 		req.body.password===Database.user[0].password){
 		res.json(Database.user[0]);
@@ -95,3 +109,4 @@ app.listen(3030,()=>{
 })
 
 
+//

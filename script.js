@@ -1,5 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const bcrypt = require('bcrypt-nodejs');
 const cors = require('cors');
 const knex = require('knex');
 
@@ -20,57 +21,55 @@ app.use(bodyParser.json());
 app.use(cors());
 
 
-const Database = {
-	user:[
-	{
-		id:"123",
-		name:"jatin",
-		email:"jatin@gmail.com",
-		password:"00",
-		entries: 0,
-		joined: new Date()
-	},
-	{
-		id:'124',
-		name:"jonny",
-		email:"jonny@gmail.com",
-		password:"password",
-		entries: 0,
-		joined: new Date()
-	}
-	]
-}
-
-
 app.get('/',(req,res)=>{
 	res.send(Database.user);
 })
 
 
 app.post('/signin',(req,res)=>{
-	console.log(req.body.email===Database.user[0].email,
-		req.body.password===Database.user[0].password)
-	if(req.body.email===Database.user[0].email&&
-		req.body.password===Database.user[0].password){
-		res.json(Database.user[0]);
-	}else{
-		res.status(404).json('failed');
-	}
+	db.select('email','hash').from('login')
+	   .where('email', '=', req.body.email)
+	   .then(data => {
+	   		const isValid = bcrypt.compareSync(req.body.password, data[0].hash);
+	   		if(isValid){
+	   			return db.select('*').from('users')
+	   				.where('email', '=', req.body.email)
+	   				.then(user => {
+	   					res.json(user[0])
+	   				})
+	   				.catch(err => res.status(400).json('unable to get user'))
+	   		}else{
+	   			res.status(400).json('wrong credentials')
+	   		}
+	   }) .catch(err => res.status(400).json('wrong credentials'))
 })
 
 
 app.post('/register',(req,res)=>{
 	const {email,name,password} = req.body;
-	db('users')
-	.returning('*')
-	.insert({
-		email:email,
-		name:name,
-		joined: new Date()
-	}).then(user =>{
-		res.json(user[0]);
-	})
-	.catch(err => res.status(404).json('Not Found'));
+	const hash = bcrypt.hashSync(password);
+	db.transaction(trx=>{
+		trx.insert({
+			hash:hash,
+			email:email
+		})
+		.into('login')
+		.returning('email')
+		.then(loginEmail => {
+			return trx('users')
+				.returning('*')
+				.insert({
+					email:loginEmail[0],
+					name:name,
+					joined: new Date()
+				}).then(user =>{
+					res.json(user[0]);
+				})
+			})
+		.then(trx.commit)
+		.catch(trx.rollback)
+	})	
+	.catch(err => res.status(404).json('unable to register'));
 })
 
 
@@ -89,17 +88,10 @@ app.get('/profile/:id',(req,res)=>{
 
 app.put('/image',(req,res)=>{
 	const {id} = req.body;
-	let flag = false;
-	Database.user.forEach(user =>{
-		if(id===user.id){
-			flag = true;
-			user.entries++;
-			return res.json(user.entries);
-		}
-	})
-	if(!flag){
-		res.status(404).send("Not Found");
-	}
+	db('users').where('id', '=', id).increment('entries',1).returning('entries')
+	.then(entries => {
+		res.json(entries[0]);
+	}).catch(err=>res.status(404).json('unable to get entries'));
 })
 
 
